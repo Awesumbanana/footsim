@@ -21,30 +21,36 @@ namespace ns3
     
     struct Neighbor
     {
-        double signalStrength;
+        double oldSignalStrength;
         double batteryLevel;
+        double distanceFromMe;
         Ptr<Socket> playerSocket;
         Point coord;
 
-        Neighbor(double _signalStrength, double _batteryLevel, Ptr<Socket> _playerSocket, Point _coord)
-            : signalStrength(_signalStrength), batteryLevel(_batteryLevel), playerSocket(_playerSocket), coord(_coord) {}
+        Neighbor(double _signalStrength, double _batteryLevel, double _distanceFromMe, Ptr<Socket> _playerSocket, Point _coord)
+            : oldSignalStrength(_signalStrength), batteryLevel(_batteryLevel), distanceFromMe(_distanceFromMe), playerSocket(_playerSocket), coord(_coord) {}
 
         void updateCoord (Point newCoords) {
             coord = newCoords;
         }
 
         void updateSignalStrength (double signal) {
-            signalStrength = signal;
+            oldSignalStrength = signal;
         }
 
         void updateBatteryLevel (double battery) {
             batteryLevel = battery;
         }
 
-        void updateAll (double signal, double battery, Point newCoords) {
+        void updateDistanceFromMe(double distance) {
+            distanceFromMe = distance;
+        }
+
+        void updateAll (double signal, double battery, double distance, Point newCoords) {
             updateSignalStrength(signal);
             updateBatteryLevel(battery);
             updateCoord(newCoords);
+            updateDistanceFromMe(distance);
         }
     };
     
@@ -69,6 +75,7 @@ namespace ns3
             ns3::Address m_peerAddress;
             virtual void StartApplication ();
             virtual void StopApplication ();
+            double ComputeScore(const Neighbor& player);
             void HandleRead (Ptr<Socket> socket);
             void SendPacket (Ptr<Packet> packet, Ipv6Address destination, uint16_t port);
             std::vector<Neighbor> GetBestNeighbors ();

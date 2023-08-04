@@ -9,7 +9,6 @@
 #include "ns3/energy-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/lr-wpan-module.h"
-// #include "ns3/point-to-point-module.h"
 #include "ns3/sixlowpan-module.h"
 #include "ns3/ns2-mobility-helper.h"
 #include "ns3/yans-wifi-channel.h"
@@ -144,7 +143,8 @@ main(int argc, char* argv[])
     // Common port number for all nodes
     uint16_t port = 50000;
 
-    ApplicationContainer sinkApp;
+    ApplicationContainer sinkApps;
+    ApplicationContainer playerApps;
 
     // Configuring UDP connection for the sinks->players
     for(uint32_t i = 0; i < m; ++i) {
@@ -159,10 +159,11 @@ main(int argc, char* argv[])
         app_j->ConfigurePlayerConnection(playerAddress);
         // std::cout << "Created player " << j << " connection for sink " << i << std::endl;
       }
-      sinkApp.Add(app_j);
-
+      sinkApps.Add(app_j);
     }
-
+    
+    sinkApps.Start(Seconds(0.0));
+    sinkApps.Stop(Seconds(10.0));
     // uDP connections player->player and player->sink
     for(uint32_t i = 0; i < n; ++i) {
       Ptr<Node> wsnNode = playerNodes.Get(i); 
@@ -183,9 +184,12 @@ main(int argc, char* argv[])
           Inet6SocketAddress trnAddress(wsnDeviceInterfaces.GetAddress(n + k, 1), port);
           app_i->AddTransmitter(trnAddress, trnCoords[k]);
           // std::cout << "Created player " << i << " connection to transmitter " << k << std::endl;
-        }
+      }
+      playerApps.Add(app_i);
     }
 
+    playerApps.Start(Seconds(0.0));
+    playerApps.Start(Seconds(10.0));
     
     std::cout << "Creating trace XML file" << std::endl;
     AnimationInterface anim("footsim.xml");
