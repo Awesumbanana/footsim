@@ -43,8 +43,14 @@ namespace ns3
             uint8_t* buffer = new uint8_t[size];
             packet->CopyData(buffer, size);
 
-
-
+            PacketData incomingData;
+            std::memcpy(&incomingData, buffer, sizeof(PacketData));
+            switch (incomingData.packetType)
+            {
+                case LOCATION_RESPONSE:
+                    // Write response coordinates to file
+                    break;
+            }
         }
     }
 

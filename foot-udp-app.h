@@ -1,5 +1,6 @@
 #ifndef FOOT_UDP_APPLICATION_H
 #define FOOT_UDP_APPLICATION_H
+#include "utilities.h"
 #include "ns3/socket.h"
 #include "ns3/applications-module.h"
 
@@ -8,17 +9,6 @@
 using namespace ns3;
 namespace ns3
 {   
-    struct Point
-    {
-        double x;
-        double y;
-        
-        Point(double _x, double _y)
-            : x(_x), y(_y) {}
-
-        Point () {}
-    };
-    
     struct Neighbor
     {
         double oldSignalStrength;
@@ -72,6 +62,7 @@ namespace ns3
             Ptr<Socket> m_socket;
             Point m_currentPosition;
             Point m_prevPosition;
+            double m_batteryLevel;
             ns3::Address m_peerAddress;
             virtual void StartApplication ();
             virtual void StopApplication ();

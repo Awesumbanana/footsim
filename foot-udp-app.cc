@@ -55,6 +55,7 @@ namespace ns3
     // This function returns the score of a neighbor based on weights for attributes
     double FootUdpApplication::ComputeScore(const Neighbor& player)
     {
+        // More possible factors such as role of players
         const double distanceWeight = 0.5;
         const double batteryWeight = 0.3;
         const double signalWeight = 0.2;
@@ -164,14 +165,47 @@ namespace ns3
         Point estimatedLocation = possibleZoneCenter;
 
         return estimatedLocation;
-        return currentLocation;
     }
     
+    // Get the location of the player and send back to sink
     void FootUdpApplication::HandleRead (Ptr<Socket> socket) {
         Ptr<Packet> packet;
         Address from;
         while(packet = socket->RecvFrom(from)) {
-            GetLocation();
+            uint32_t size = packet->GetSize();
+            uint8_t* buffer = new uint8_t[size];
+            packet->CopyData(buffer, size);
+            PacketData incomingData;
+            std::memcpy(&incomingData, buffer, sizeof(PacketData));
+
+            switch (incomingData.packetType)
+            {
+                case LOCATION_REQUEST:
+                {
+                    std::vector<Neighbor> closePlayers = GetBestNeighbors();
+                    break;
+                }
+                case INFO_REQUEST:
+                {
+                    PacketData playerInformation(INFO_RESPONSE, m_currentPosition.x, m_currentPosition.y, m_batteryLevel);
+                    uint8_t *infResBuffer = new uint8_t(sizeof(PacketData));
+                    std::memcpy(infResBuffer, &playerInformation, sizeof(PacketData));
+                    Ptr<Packet> responsePacket = Create<Packet>(infResBuffer, sizeof(PacketData));
+                    socket->SendTo(responsePacket, 0, from);
+                    break;
+                }
+                case INFO_RESPONSE:
+                {
+                    
+                    break;
+                }
+            }
+
+            Point playerLocation = GetLocation();
+            uint8_t *sendBuffer = new uint8_t[sizeof(Point)];
+            std::memcpy(sendBuffer, &playerLocation, sizeof(Point));
+            Ptr<Packet> response = Create<Packet>(sendBuffer, sizeof(Point));
+            socket->SendTo(response, 0, from);
         }
     }
 

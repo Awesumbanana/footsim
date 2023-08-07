@@ -163,7 +163,7 @@ main(int argc, char* argv[])
     }
     
     sinkApps.Start(Seconds(0.0));
-    sinkApps.Stop(Seconds(10.0));
+    sinkApps.Stop(Seconds(15.0));
     // uDP connections player->player and player->sink
     for(uint32_t i = 0; i < n; ++i) {
       Ptr<Node> wsnNode = playerNodes.Get(i); 
@@ -189,7 +189,7 @@ main(int argc, char* argv[])
     }
 
     playerApps.Start(Seconds(0.0));
-    playerApps.Start(Seconds(10.0));
+    playerApps.Start(Seconds(15.0));
     
     std::cout << "Creating trace XML file" << std::endl;
     AnimationInterface anim("footsim.xml");
@@ -200,7 +200,7 @@ main(int argc, char* argv[])
     Ptr<Application> app = transmitter1->GetApplication(0);
     Ptr<FootTrnApplication> trnApplication = DynamicCast<FootTrnApplication>(app);
     Simulator::Schedule(Seconds (1), &FootTrnApplication::TrackPlayerLocation, trnApplication, 0);
-    Simulator::Stop(Seconds(10.0));
+    Simulator::Stop(Seconds(15.0));
     Simulator::Run();
 
     Simulator::Destroy();

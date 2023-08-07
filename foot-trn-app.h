@@ -1,5 +1,6 @@
 #ifndef FOOT_TRN_APPLICATION_H
 #define FOOT_TRN_APPLICATION_H
+#include "utilities.h"
 #include "ns3/socket.h"
 #include "ns3/application.h"
 
