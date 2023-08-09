@@ -1,7 +1,10 @@
 #include "ns3/log.h"
 #include "ns3/config.h"
 #include "foot-udp-app.h"
+#include "packet-data-header.h"
 #include "ns3/simulator.h"
+#include "ns3/wifi-net-device.h"
+#include "ns3/wifi-phy.h"
 
 namespace ns3
 {
@@ -24,13 +27,13 @@ namespace ns3
     // Configures socket for self and listens for packets. Reading is handled in StartApplication
     void FootUdpApplication::Setup(Inet6SocketAddress address)
     {
+
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
         m_socket = Socket::CreateSocket(GetNode(), tid);
         m_socket->Bind(address);
-
-        for (Transmitter trn : m_transmitters) {
+        // for (Transmitter trn : m_transmitters) {
             
-        }
+        // }
     }
 
     // Creates a socket to listen to packets from a player. Created for all players. 
@@ -70,9 +73,10 @@ namespace ns3
         int numPlayers = 5;
         
         std::vector<int> indices(m_playerList.size());
-        for (int i = 0; i < m_playerList.size(); ++i) {
-            indices[i] = i;
-        }
+        std::iota(indices.begin(), indices.end(), 0);
+        // for (int i = 0; i < m_playerList.size(); ++i) {
+        //     indices[i] = i;
+        // }
 
         auto comp = [this](int a, int b) { return FootUdpApplication::ComputeScore(m_playerList[a]) > FootUdpApplication::ComputeScore(m_playerList[b]); };
 
@@ -134,7 +138,7 @@ namespace ns3
         // Create a vector of pairs (radius, index) to store the radius of each zone and its corresponding index
         std::vector<std::pair<double, int>> zoneRadii;
         for (int i = 0; i < numNodes; ++i) {
-            bool isPositive = isPositiveRSSD(RSSDValues[i], delta);
+            bool isPositive = isPositiveRSSD(0.0, delta);
             if (isPositive) {
                 double distance = sqrt((m_playerList[i].coord.x - m_playerList[0].coord.x) * (m_playerList[i].coord.x - m_playerList[0].coord.x) +
                                     (m_playerList[i].coord.y - m_playerList[0].coord.y) * (m_playerList[i].coord.y - m_playerList[0].coord.y));
@@ -151,10 +155,10 @@ namespace ns3
 
         for (const auto& zone : zoneRadii) {
             int i = zone.second;
-            double distance = zone.first;
+            // double distance = zone.first;
 
             // Calculate the intersection with the current zone
-            std::vector<Point> intersections = circleIntersection(possibleZoneCenter, possibleZoneRadius, m_playerList[i].coord, RSSDValues[i]);
+            std::vector<Point> intersections = circleIntersection(possibleZoneCenter, possibleZoneRadius, m_playerList[i].coord, 0.0);
             if (!intersections.empty()) {
                 possibleZoneCenter = intersections[0];
                 possibleZoneRadius = 0.0;
@@ -172,23 +176,27 @@ namespace ns3
         Ptr<Packet> packet;
         Address from;
         while(packet = socket->RecvFrom(from)) {
-            uint32_t size = packet->GetSize();
-            uint8_t* buffer = new uint8_t[size];
-            packet->CopyData(buffer, size);
-            PacketData incomingData;
-            std::memcpy(&incomingData, buffer, sizeof(PacketData));
+            // uint32_t size = packet->GetSize();
+            // uint8_t buffer[size];
+            // packet->CopyData(buffer, size);
+            // PacketData incomingData;
+            // std::memcpy(&incomingData, buffer, sizeof(PacketData));
 
-            switch (incomingData.packetType)
+            PacketDataHeader header;
+            packet->RemoveHeader(header);
+
+            switch (header.GetPacketType())
             {
                 case LOCATION_REQUEST:
                 {
+                    NS_LOG_INFO("Location request");
                     std::vector<Neighbor> closePlayers = GetBestNeighbors();
                     break;
                 }
                 case INFO_REQUEST:
                 {
                     PacketData playerInformation(INFO_RESPONSE, m_currentPosition.x, m_currentPosition.y, m_batteryLevel);
-                    uint8_t *infResBuffer = new uint8_t(sizeof(PacketData));
+                    uint8_t infResBuffer[sizeof(PacketData)];
                     std::memcpy(infResBuffer, &playerInformation, sizeof(PacketData));
                     Ptr<Packet> responsePacket = Create<Packet>(infResBuffer, sizeof(PacketData));
                     socket->SendTo(responsePacket, 0, from);
@@ -196,30 +204,70 @@ namespace ns3
                 }
                 case INFO_RESPONSE:
                 {
-                    
+
                     break;
                 }
             }
 
             Point playerLocation = GetLocation();
-            uint8_t *sendBuffer = new uint8_t[sizeof(Point)];
+            uint8_t sendBuffer[sizeof(Point)];
             std::memcpy(sendBuffer, &playerLocation, sizeof(Point));
             Ptr<Packet> response = Create<Packet>(sendBuffer, sizeof(Point));
             socket->SendTo(response, 0, from);
         }
     }
 
-    void FootUdpApplication::SniffRx (std::string context, double rss) {
+    void FootUdpApplication::SniffRx (
+        std::string context,
+        Ptr<const Packet> packet,
+        uint16_t channelFreqMhz,
+        WifiTxVector txVector,
+        MpduInfo aMpdu,
+        SignalNoiseDbm signalNoise,
+        uint16_t staId) 
+    {
+        // double rssi = signalNoise.signal;
+        Ptr<Packet> copyPacket = packet->Copy();
+        PacketDataHeader header;
+        copyPacket->RemoveHeader(header);
+        uint32_t size = copyPacket->GetSize();
+        NS_LOG_INFO("Sniffer");
+        if (size != sizeof(PacketData)) {
+            NS_LOG_INFO("Not trn track packet");
+        }
+        uint8_t buffer[size];
+        packet->CopyData(buffer, size);
+        PacketData incomingData;
+        std::memcpy(&incomingData, buffer, sizeof(PacketData));
+        NS_LOG_INFO(context);
     }
 
     void FootUdpApplication::SetInitialPosition () {
+        // double A = 2 * (pos2.x - pos1.x);
+        // double B = 2 * (pos2.y - pos1.y);
+        // double C = 2 * (pos3.x - pos1.x);
+        // double D = 2 * (pos3.y - pos1.y);
+
+        // double E = d1 * d1 - d2 * d2 - pos1.x * pos1.x - pos1.y * pos1.y + pos2.x * pos2.x + pos2.y * pos2.y;
+        // double F = d1 * d1 - d3 * d3 - pos1.x * pos1.x - pos1.y * pos1.y + pos3.x * pos3.x + pos3.y * pos3.y;
+
+        // // Calculating estimated position (x, y)
+        // double x = (E - F * B / D) / (A - C * B / D);
+        // double y = (E - A * x) / B;
+
+        // // Set the estimated position (assuming z = 0)
+        // m_currentPosition  = Point(x, y);
     }
 
     void FootUdpApplication::StartApplication () {
-        FootUdpApplication::SetInitialPosition();
+        // FootUdpApplication::SetInitialPosition();
+        Ptr<WifiNetDevice> device = GetNode()->GetDevice(0)->GetObject<WifiNetDevice>();
+        Ptr<WifiPhy> phy = device->GetPhy();
+        // NS_LOG_INFO("RSSI");
+        // NS_LOG_INFO(phy->GetRxSensitivity());
         m_socket->SetRecvCallback(MakeCallback(&FootUdpApplication::HandleRead, this));
         std::string node_id = std::to_string (GetNode ()->GetId ());
-        Config::Connect("/NodeList/*/DeviceList/*/Phy/MonitorSnifferRx", MakeCallback(&FootUdpApplication::SniffRx, this));
+        Config::Connect("/NodeList/*/DeviceList/0/Phy/MonitorSnifferRx", MakeCallback(&FootUdpApplication::SniffRx, this));
     }
 
     void FootUdpApplication::StopApplication () {

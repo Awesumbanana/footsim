@@ -3,8 +3,12 @@
 #include "utilities.h"
 #include "ns3/socket.h"
 #include "ns3/applications-module.h"
+#include "ns3/wifi-tx-vector.h"
+#include "ns3/wifi-mpdu-type.h"
+#include "ns3/phy-entity.h"
 
 #include <vector>
+#include <numeric>
 
 using namespace ns3;
 namespace ns3
@@ -70,7 +74,13 @@ namespace ns3
             void HandleRead (Ptr<Socket> socket);
             void SendPacket (Ptr<Packet> packet, Ipv6Address destination, uint16_t port);
             std::vector<Neighbor> GetBestNeighbors ();
-            void SniffRx (std::string context, double rss);
+            void SniffRx (std::string context,
+                Ptr<const Packet> packet,
+                uint16_t channelFreqMhz,
+                WifiTxVector txVector,
+                MpduInfo aMpdu,
+                SignalNoiseDbm signalNoise,
+                uint16_t staId);
             Point GetLocation ();
 
         public:

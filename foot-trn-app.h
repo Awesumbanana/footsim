@@ -17,6 +17,7 @@ namespace ns3
             virtual void StopApplication ();
             void SendPacket (Ptr<Socket> socket, uint32_t nodeIndex);
             void ReadIncoming (Ptr<Socket> socket);
+            Point m_trnLocation;
             Ptr<Socket> m_socket;
             Ipv6Address m_address;
             uint16_t m_port;
@@ -25,7 +26,7 @@ namespace ns3
         public:
             FootTrnApplication ();
             ~FootTrnApplication();
-            void Setup(Inet6SocketAddress sinkAddress);
+            void Setup(Inet6SocketAddress sinkAddress, Point trnCoords);
             void ConfigurePlayerConnection (Inet6SocketAddress playerAddress);
             void TrackPlayerLocation (uint32_t nodeIndex);
             static TypeId GetTypeId ();

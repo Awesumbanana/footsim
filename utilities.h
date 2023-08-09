@@ -7,18 +7,6 @@ enum PacketType {
     LOCATION_RESPONSE = 4
 };
 
-struct PacketData {
-    int packetType;
-    double xCoord;
-    double yCoord;
-    double batteryLevel;   
-
-    PacketData () {}  
-
-    PacketData (int _packetType, double _xCoord, double _yCoord, double _batteryLevel) : 
-        packetType(_packetType), xCoord(_xCoord), yCoord(_yCoord), batteryLevel(_batteryLevel) {}              
-};
-
 struct Point
 {
     double x;
@@ -30,3 +18,14 @@ struct Point
     Point () {}
 };
 
+struct PacketData {
+    int packetType;
+    double xCoord;
+    double yCoord;
+    double batteryLevel;   
+
+    PacketData () {}  
+
+    PacketData (int _packetType, double _xCoord, double _yCoord, double _batteryLevel) : 
+        packetType(_packetType), xCoord(_xCoord), yCoord(_yCoord), batteryLevel(_batteryLevel) {}              
+};

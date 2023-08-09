@@ -4,6 +4,7 @@
 #include "ns3/config.h"
 #include "foot-udp-app.h"
 #include "foot-trn-app.h"
+#include "ns3/mobility-module.h"
 #include "ns3/netanim-module.h"
 #include "ns3/network-module.h"
 #include "ns3/energy-module.h"
@@ -48,6 +49,7 @@ main(int argc, char* argv[])
     // 11 players in a football team
     LogComponentEnable ("FootSimulation", LOG_LEVEL_INFO);
     LogComponentEnable ("FootTrnApplication", LOG_LEVEL_INFO);
+    LogComponentEnable ("FootUdpApplication", LOG_LEVEL_INFO);
     NS_LOG_INFO ("Starting Simulation");
 
     uint32_t n = 11;
@@ -80,6 +82,16 @@ main(int argc, char* argv[])
     NodeContainer sinks;
     sinks.Create(m);
 
+    MobilityHelper mobility;
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+
+    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+    positionAlloc->Add(Vector(trnCoords[0].x, trnCoords[0].y, 0.0));
+    positionAlloc->Add(Vector(trnCoords[1].x, trnCoords[1].y, 0.0));
+    positionAlloc->Add(Vector(trnCoords[2].x, trnCoords[2].y, 0.0));
+    mobility.SetPositionAllocator(positionAlloc);
+    mobility.Install(sinks);
+
     NodeContainer allNodes = NodeContainer(playerNodes, sinks);
 
     // Adding point to point connections between the sinks and all the players
@@ -107,6 +119,7 @@ main(int argc, char* argv[])
     // wifiChannel.SetPropagationDelay("ns3::ConstantSpeedPropagationDelayModel");
     
     wifiPhy.SetChannel(wifiChannel);
+  
     WifiMacHelper wifiMac;
     wifi.SetRemoteStationManager("ns3::ConstantRateWifiManager");
     // Set it to adhoc mode
@@ -119,7 +132,7 @@ main(int argc, char* argv[])
     // NetDeviceContainer lrwpanDevices = lrWpanHelper.Install(devices);
 
     // lrWpanHelper.CreateAssociatedPan(lrwpanDevices, 10);
-    // std::cout << "Created " << lrwpanDevices.GetN() << " devices" << std::endl;
+    // std::cout << "Created " << lrwpanDeices.GetN() << " devices" << std::endl;
     // std::cout << "There are " << playerNodes.GetN() << " nodes" << std::endl;
 
     InternetStackHelper internetv6;
@@ -136,10 +149,6 @@ main(int argc, char* argv[])
     wsnDeviceInterfaces.SetForwarding(0, true);
     wsnDeviceInterfaces.SetDefaultRouteInAllNodes(0);
 
-    // uint32_t packetSize = 16;
-    // uint32_t maxPacketCount = 5;
-    // Time interPacketInterval = Seconds(1.);
-
     // Common port number for all nodes
     uint16_t port = 50000;
 
@@ -152,7 +161,7 @@ main(int argc, char* argv[])
       Ptr<FootTrnApplication> app_j = CreateObject<FootTrnApplication>();
       sinkNode->AddApplication(app_j);
       Inet6SocketAddress sinkAddress(wsnDeviceInterfaces.GetAddress(i+n, 0), port);
-      app_j->Setup(sinkAddress);
+      app_j->Setup(sinkAddress, trnCoords[i]);
       for (uint32_t j = 0; j < n; ++j) {
         Ptr<Node> wsnNode = playerNodes.Get(j);
         Inet6SocketAddress playerAddress(wsnDeviceInterfaces.GetAddress(j, 1), port);
@@ -164,6 +173,7 @@ main(int argc, char* argv[])
     
     sinkApps.Start(Seconds(0.0));
     sinkApps.Stop(Seconds(15.0));
+
     // uDP connections player->player and player->sink
     for(uint32_t i = 0; i < n; ++i) {
       Ptr<Node> wsnNode = playerNodes.Get(i); 
@@ -181,28 +191,30 @@ main(int argc, char* argv[])
       }
       // Player->sink
       for (uint32_t k = 0; k < m; ++k) {
-          Inet6SocketAddress trnAddress(wsnDeviceInterfaces.GetAddress(n + k, 1), port);
-          app_i->AddTransmitter(trnAddress, trnCoords[k]);
+        Inet6SocketAddress trnAddress(wsnDeviceInterfaces.GetAddress(n + k, 1), port);
+        app_i->AddTransmitter(trnAddress, trnCoords[k]);
           // std::cout << "Created player " << i << " connection to transmitter " << k << std::endl;
       }
       playerApps.Add(app_i);
     }
 
     playerApps.Start(Seconds(0.0));
-    playerApps.Start(Seconds(15.0));
-    
-    std::cout << "Creating trace XML file" << std::endl;
-    AnimationInterface anim("footsim.xml");
-    anim.EnablePacketMetadata(true);
+    playerApps.Stop(Seconds(15.0));
+    NS_LOG_INFO("Players added");
 
     // Recursively getting the player locations from a single transmitter. For now. 
     Ptr<Node> transmitter1 = sinks.Get(0);
     Ptr<Application> app = transmitter1->GetApplication(0);
     Ptr<FootTrnApplication> trnApplication = DynamicCast<FootTrnApplication>(app);
-    Simulator::Schedule(Seconds (1), &FootTrnApplication::TrackPlayerLocation, trnApplication, 0);
+    Simulator::Schedule(Seconds(1), &FootTrnApplication::TrackPlayerLocation, trnApplication, 0);
+
     Simulator::Stop(Seconds(15.0));
+    std::cout << "Creating trace XML file" << std::endl;
+    AnimationInterface anim("footsim.xml");
+    anim.EnablePacketMetadata(true);
     Simulator::Run();
 
     Simulator::Destroy();
+
     return 0;
 }
